@@ -1,5 +1,16 @@
 # Lari-Kunnasmaa-CV
 
-🎓 𝚂𝚝𝚞𝚍𝚢𝚒𝚗𝚐 𝙷𝚘𝚗𝚘𝚞𝚛𝚜 𝙲𝚘𝚖𝚙𝚞𝚝𝚎𝚛 𝚂𝚌𝚒𝚎𝚗𝚌𝚎 𝚠𝚒𝚝𝚑 𝙲𝚘-𝚘𝚙 𝚊𝚝 𝚝𝚑𝚎 𝚄𝚗𝚒𝚟𝚎𝚛𝚜𝚒𝚝𝚢 𝚘𝚏 𝚆𝚊𝚝𝚎𝚛𝚕𝚘𝚘, 𝚌𝚕𝚊𝚜𝚜 𝚘𝚏 𝟸0𝟸𝟻
-🌐 𝚈𝚘𝚞 𝚌𝚊𝚗 𝚊𝚌𝚌𝚎𝚜𝚜 𝚊𝚕𝚕 𝚖𝚢 𝚘𝚙𝚎𝚗-𝚜𝚘𝚞𝚛𝚌𝚎 𝚙𝚛𝚘𝚓𝚎𝚌𝚝𝚜 𝚑𝚎𝚛𝚎 𝚘𝚗 𝙶𝚒𝚝𝙷𝚞𝚋 𝚘𝚛 𝚘𝚗 𝚝𝚑𝚎 𝙰𝚄𝚁
-𝚋𝚝𝚠 𝙸 𝚞𝚜𝚎 𝙰𝚛𝚌𝚑 Arch Linux Logo
+Hi there,
+Welcome to my page
+
+My name is Lari Kunnasmaa and I am an Univesity student from Turku, soon moving to Pori.
+
+I have majored in physics with a minor in mathematics, programming and sustainable development. 
+
+When starting programming, I had no idea how much I would end up loving it. Turns out all I needed was the right motivation. After which I could not get enough of it, even coding in my free time. I have mostly used Python and especially pandas, and NumPy. Although I have used a bit of java and done some Arduino projects.  
+
+This repository contains university projects relating to data analysis and physics. These projects include a part of the code for my Master's thesis, a simulation on diffusion and a data analysis courses project. 
+
+ 
+
+
