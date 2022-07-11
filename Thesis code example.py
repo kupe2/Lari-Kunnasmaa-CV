@@ -26,260 +26,8 @@ slide_num = 0
 
 
 
-#I am sorry about the poor quality of the comments and explanations, but the code is still a work in progress and needs some  fine tuning.
-# Stuff mentioned in the pdf begins at line 287
-
-
-
-
-
-
-#These are used to visualise the data, very useful functions. I am actually proud of these functions
-
-class DraggableMarker():
-    def __init__(self, ax, data, calibration, lines=None):
-        self.ax = ax
-        self.data = data
-        if calibration == None:
-            self.calibration = non
-        else:
-            self.calibration = calibration
-        if lines == None:
-            self.lines = self.ax.lines
-        else:
-            self.lines = lines
-        self.lines = self.lines[:]
-        self.tx = [self.ax.text(0, 0, "") for l in self.lines]
-        self.marker = [self.ax.plot([data.index[0]], [data.mean()], marker="o", color="red")[0] for l in self.lines]
-        self.draggable = False
-        self.c1 = self.ax.figure.canvas.mpl_connect("button_press_event", self.click)
-        self.c2 = self.ax.figure.canvas.mpl_connect("button_release_event", self.release)
-        self.c3 = self.ax.figure.canvas.mpl_connect("motion_notify_event", self.drag)
-
-    def click(self, event):
-        if event.button == 1:  # leftclick
-            self.draggable = True
-            self.update(event)
-        elif event.button == 3:
-            self.draggable = False
-        [tx.set_visible(self.draggable) for tx in self.tx]
-        [m.set_visible(self.draggable) for m in self.marker]
-        self.ax.figure.canvas.draw_idle()
-
-    def drag(self, event):
-        if self.draggable:
-            self.update(event)
-            self.ax.figure.canvas.draw_idle()
-
-    def release(self, event):
-        self.draggable = False
-
-    def update(self, event):
-
-        def draw_peak(self, i, x ):
-            return self.tx[i].set_text("Peak\nMass:{}\nF_time:{}\n\n ".format(round(x,1), self.calibration(x))+"\n\n\n"*i)
-        for i, line in enumerate(self.lines):
-            x, y = self.get_closest(line, event.xdata)
-            self.tx[i].set_position((x, y))
-            draw_peak(self, i ,x )
-            self.marker[i].set_data([x], [y])
-
-    def get_closest(self, line, mx):
-        x, y = line.get_data()
-        mini = np.argmin(np.abs(x - mx))
-        return x[mini], y[mini]
-
-def Slide_show(to_plot, amount_slides):
-    slide_num = 0
-    Slideshow = plt.figure(0)
-
-    def Scroll_forward(fig):
-        global slide_num
-        slide_num += 1
-        slide_num %= amount_slides
-        fig.clear()
-        print("Figure", slide_num)
-        to_plot()
-        plt.draw()
-
-    def Click_backwards(fig):
-        global slide_num
-        slide_num -= 1
-        slide_num %= amount_slides
-        fig.clear()
-        print("Figure", slide_num)
-        to_plot()
-        plt.draw()
-
-    to_plot()
-    Slideshow.canvas.mpl_connect('scroll_event', lambda event: Scroll_forward(Slideshow))
-    Slideshow.canvas.mpl_connect('button_press_event', lambda event: Click_backwards(Slideshow))
-    plt.show()
-
-
-
-
-
-
-# Not mentioned in the pdf you can skip to  line 287
-
-
-#TOF
-def Tof_read(Tofs, Sample):
-    Mass_plot = 0
-    for Num in Tofs:
-        data = pd.read_csv(os.path.join(TOF_dir, str(Sample) + '_0' + str(Num) + '.txt'), header=None, delimiter="\t",
-                           index_col=False)
-        data.columns = ["F_time", "Intensity"]
-        peaks, _ = find_peaks(data["Intensity"], height=150, distance=100, prominence=1)
-        fig, ax = plt.subplots()
-        #if (Mass_plot == 1):
-        #    data["Mass"] = ((data["F_time"] - T_0) / C_0) ** 2
-
-        print(data)
-        ax.plot(data["Mass"], data["Intensity"])
-        ax.plot(data["Mass"][peaks], data["Intensity"][peaks], "x")
-        dm = DraggableMarker(ax, data, Calib_bins)
-        plt.show()
-    return
-
-#Calibration
-def calib_reads(File_num, Sample_type):
-    dt = np.dtype([('TOF1', np.uint16), ('TOF2', np.uint16), ('TOF3', np.uint16),
-                   ('TOF4', np.uint16), ('Not need1', np.uint16), ('Not need2', np.uint16), ('Not need3', np.uint16),
-                   ('Not need4', np.uint16), ("elx", np.uint16
-                                              ,), ('con', np.uint16)])
-    Number_of = np.dtype([("elx", np.uint32,)])
-
-    PPC_file = os.path.join(Calib_dir, str(Sample_type)  +"_0"+ str(File_num) + '.dat')  # Number of ions extraction
-    records = np.fromfile(PPC_file, Number_of, offset=0)
-    records = np.delete(records, [0])  # Yeets the number of ions
-
-    records.tofile("test.dat")  # Converting the whole file
-    records = np.fromfile("test.dat", dt, offset=0)
-    df = pd.DataFrame(records)
-    df = df[df.con == 1]
-    df = df[df.elx >= 1000]
-    df = df["elx"]
-
-    return df
-
-def Disp_elx(Disp_Number):
-    N_bins = 250
-    cal = [calib_reads(x, "DispEpass50") for x in Disp_Number]
-    coeffs = pd.DataFrame(columns=["a","b","c"])
-    #var_matrixs = pd.DataFrame(columns=["a"])
-    var_matrixs = []
-
-    for index, y in enumerate(cal):
-        Histogram, bin_edges = np.histogram(y, bins=N_bins)  # make histo and find max peak
-        peak_dist = bin_edges[Histogram.argmax()]
-        bin_centres = (bin_edges[:-1]-10 + bin_edges[1:]+10) / 2
-        p0 = [np.amax(Histogram), peak_dist, Histogram.std()]
-        if p0[2]< 500:
-            p0[2]= 600
-
-        coeffs.loc[index,["a","b","c"]], var_matrix = curve_fit(Gaussian_funtion, bin_centres, Histogram, p0= p0, bounds =( [p0[0]*0.95, -np.inf, 500],  [np.inf, np.inf, 1700] ) )
-
-    def Slide_curve():
-        Histogram, bin_edges = np.histogram(cal[slide_num], bins=N_bins)  # make histo and find max peak
-        peak_dist = bin_edges[Histogram.argmax()]
-        bin_centres = (bin_edges[:-1]-10 + bin_edges[1:]+10) / 2
-        p0 = [np.amax(Histogram), peak_dist, Histogram.std()]
-        if p0[2]< 500:
-            p0[2]= 600
-        coeff, var_matrix = curve_fit(Gaussian_funtion, bin_centres, Histogram, p0= p0, bounds =( [p0[0]*0.95, -np.inf, 500],  [np.inf, np.inf, 1700] ) )  # curve_fit(gauss, bin_centres, peak, p0=p0)
-        hist_fit = Gaussian_funtion(bin_centres, *coeff)
-        cal[slide_num].hist( bins = N_bins)
-        plt.plot(bin_centres, hist_fit, label='Fitted data')
-
-    #Slide_show(Slide_curve, len(cal) )
-
-    return coeffs, var_matrixs
-
-def Disp_fit(Disp_nums):
-    coeffs, err_coeffs = Disp_elx(Disp_nums)
-    place = [5.49-10.5+int(x)*0.5 for x in Disp_nums]
-
-    peak_spots = coeffs["b"].values
-    popt, _ = curve_fit(Polynomial_function, peak_spots, place)
-    a, b, c = popt
-
-    print('y = %.15f * x^2 + %.10f * x + %.5f' % (a, b, c))
-    Disp_plot = False
-    if Disp_plot:
-        plt.scatter(peak_spots, place)
-        x_line = np.arange(min(peak_spots), max(peak_spots))
-        y_line = Polynomial_function(x_line, *popt)
-        plt.plot(x_line, y_line,  color='green')
-        plt.legend()
-        plt.show()
-    #popt = [2.597*10**-10,0.000119, -3.7984]
-    return popt
-
-# Fitted functions
-def Gaussian_funtion(x, *p):
-    A, mu, sigma = p
-    return A * np.exp(-(x - mu) ** 2 / (2. * sigma ** 2))
-
-def Polynomial_function(x,a, b, c):
-    return a * x**2 + b * x  + c
-
-def Linear_function(x, a, b):
-    return a*x+b
-
-def non(x):
-    return x
-
-def Calib_func(x):
-    x = float(x)
-    return  ((x- T_0)/C)**2
-
-def m_to_T(x):
-    x = float(x)
-    return round(T_0+C*math.sqrt(x),0)
-
-#PPC Begins
-def Custom_bins(time_bins):
-    PPC_df = pd.read_excel(os.path.join(Other_dir, "PPC_events.xlsx"), index_col=0)
-    runs_df = PPC_df[Samples[PPC_Sample]].dropna()
-    index_nums = runs_df[Analysed_runs].sum() / 100000
-    run_index = runs_df[Analysed_runs]
-    num_index = run_index.cumsum() * index_nums / run_index.sum()
-    return [time_bins[0], index_nums],[run_index, num_index]
-
-def PPC_read(File_num, Sample_type):
-    dt = np.dtype([('TOF1', np.uint16), ('TOF2', np.uint16), ('TOF3', np.uint16),
-                   ('TOF4', np.uint16), ('Not need1', np.uint16), ('Not need2', np.uint16), ('Not need3', np.uint16),
-                   ('Not need4', np.uint16), ("elx", np.uint16), ('con', np.uint16)])
-    Number_of = np.dtype([("elx", np.uint32,)])
-    PPC_file = os.path.join(PPC_dir,
-                            'PPC' + str(Sample_type) + '_0' + str(File_num[0]) + '.dat')  # Number of ions extraction
-    if os.path.isfile(PPC_file):
-        records = np.fromfile(PPC_file, Number_of, offset=0)
-        Ionnumber = records[0][0]
-        records = np.delete(records, [0])
-
-        records.tofile("test.dat")  # Converting the whole file
-        records = np.fromfile("test.dat", dt, offset=0)
-
-        df = pd.DataFrame(records)
-    else:
-        print("Cant read file num", File_num)
-        return
-    df["Number"] = File_num[0]
-    #print(df.TOF1)
-    return df, Ionnumber
-
-def Num_ch(numbers):
-    for number in range(len(numbers)):
-        if (numbers[number] < 10):
-            numbers[number] = "0" + str(numbers[number])
-        else:
-            numbers[number] = str(numbers[number])
-    return numbers
-
-
+#I am sorry about the poor quality of the comments and explanations, but the code is still a work in progress and needs some fine tuning.
+# This file can be considered as more of a showcase of my abilities, since I am not expecting anyone to actually try to read all of the 1000 lines in the original file, not to mention actually understand what al of they do
 
 
 
@@ -644,11 +392,198 @@ def peak_calib(TOF_cuts, Molecules):
     return
 
 
-# This is where the functions end and the code that excecutes the functions begin, So enot too interesting
+# Rest of the code is not included in the pdf, you can take a look, but it is not as clean.
 
 
 
 
+
+#TOF
+def Tof_read(Tofs, Sample):
+    Mass_plot = 0
+    for Num in Tofs:
+        data = pd.read_csv(os.path.join(TOF_dir, str(Sample) + '_0' + str(Num) + '.txt'), header=None, delimiter="\t",
+                           index_col=False)
+        data.columns = ["F_time", "Intensity"]
+        peaks, _ = find_peaks(data["Intensity"], height=150, distance=100, prominence=1)
+        fig, ax = plt.subplots()
+        #if (Mass_plot == 1):
+        #    data["Mass"] = ((data["F_time"] - T_0) / C_0) ** 2
+
+        print(data)
+        ax.plot(data["Mass"], data["Intensity"])
+        ax.plot(data["Mass"][peaks], data["Intensity"][peaks], "x")
+        dm = DraggableMarker(ax, data, Calib_bins)
+        plt.show()
+    return
+
+#Calibration
+def calib_reads(File_num, Sample_type):
+    dt = np.dtype([('TOF1', np.uint16), ('TOF2', np.uint16), ('TOF3', np.uint16),
+                   ('TOF4', np.uint16), ('Not need1', np.uint16), ('Not need2', np.uint16), ('Not need3', np.uint16),
+                   ('Not need4', np.uint16), ("elx", np.uint16
+                                              ,), ('con', np.uint16)])
+    Number_of = np.dtype([("elx", np.uint32,)])
+
+    PPC_file = os.path.join(Calib_dir, str(Sample_type)  +"_0"+ str(File_num) + '.dat')  # Number of ions extraction
+    records = np.fromfile(PPC_file, Number_of, offset=0)
+    records = np.delete(records, [0])  # Yeets the number of ions
+
+    records.tofile("test.dat")  # Converting the whole file
+    records = np.fromfile("test.dat", dt, offset=0)
+    df = pd.DataFrame(records)
+    df = df[df.con == 1]
+    df = df[df.elx >= 1000]
+    df = df["elx"]
+
+    return df
+
+def Disp_elx(Disp_Number):
+    N_bins = 250
+    cal = [calib_reads(x, "DispEpass50") for x in Disp_Number]
+    coeffs = pd.DataFrame(columns=["a","b","c"])
+    #var_matrixs = pd.DataFrame(columns=["a"])
+    var_matrixs = []
+
+    for index, y in enumerate(cal):
+        Histogram, bin_edges = np.histogram(y, bins=N_bins)  # make histo and find max peak
+        peak_dist = bin_edges[Histogram.argmax()]
+        bin_centres = (bin_edges[:-1]-10 + bin_edges[1:]+10) / 2
+        p0 = [np.amax(Histogram), peak_dist, Histogram.std()]
+        if p0[2]< 500:
+            p0[2]= 600
+
+        coeffs.loc[index,["a","b","c"]], var_matrix = curve_fit(Gaussian_funtion, bin_centres, Histogram, p0= p0, bounds =( [p0[0]*0.95, -np.inf, 500],  [np.inf, np.inf, 1700] ) )
+
+    def Slide_curve():
+        Histogram, bin_edges = np.histogram(cal[slide_num], bins=N_bins)  # make histo and find max peak
+        peak_dist = bin_edges[Histogram.argmax()]
+        bin_centres = (bin_edges[:-1]-10 + bin_edges[1:]+10) / 2
+        p0 = [np.amax(Histogram), peak_dist, Histogram.std()]
+        if p0[2]< 500:
+            p0[2]= 600
+        coeff, var_matrix = curve_fit(Gaussian_funtion, bin_centres, Histogram, p0= p0, bounds =( [p0[0]*0.95, -np.inf, 500],  [np.inf, np.inf, 1700] ) )  # curve_fit(gauss, bin_centres, peak, p0=p0)
+        hist_fit = Gaussian_funtion(bin_centres, *coeff)
+        cal[slide_num].hist( bins = N_bins)
+        plt.plot(bin_centres, hist_fit, label='Fitted data')
+
+    #Slide_show(Slide_curve, len(cal) )
+
+    return coeffs, var_matrixs
+
+def Disp_fit(Disp_nums):
+    coeffs, err_coeffs = Disp_elx(Disp_nums)
+    place = [5.49-10.5+int(x)*0.5 for x in Disp_nums]
+
+    peak_spots = coeffs["b"].values
+    popt, _ = curve_fit(Polynomial_function, peak_spots, place)
+    a, b, c = popt
+
+    print('y = %.15f * x^2 + %.10f * x + %.5f' % (a, b, c))
+    Disp_plot = False
+    if Disp_plot:
+        plt.scatter(peak_spots, place)
+        x_line = np.arange(min(peak_spots), max(peak_spots))
+        y_line = Polynomial_function(x_line, *popt)
+        plt.plot(x_line, y_line,  color='green')
+        plt.legend()
+        plt.show()
+    #popt = [2.597*10**-10,0.000119, -3.7984]
+    return popt
+
+# Fitted functions
+def Gaussian_funtion(x, *p):
+    A, mu, sigma = p
+    return A * np.exp(-(x - mu) ** 2 / (2. * sigma ** 2))
+
+def Polynomial_function(x,a, b, c):
+    return a * x**2 + b * x  + c
+
+def Linear_function(x, a, b):
+    return a*x+b
+
+def non(x):
+    return x
+
+def Calib_func(x):
+    x = float(x)
+    return  ((x- T_0)/C)**2
+
+def m_to_T(x):
+    x = float(x)
+    return round(T_0+C*math.sqrt(x),0)
+
+#PPC Begins
+def Custom_bins(time_bins):
+    PPC_df = pd.read_excel(os.path.join(Other_dir, "PPC_events.xlsx"), index_col=0)
+    runs_df = PPC_df[Samples[PPC_Sample]].dropna()
+    index_nums = runs_df[Analysed_runs].sum() / 100000
+    run_index = runs_df[Analysed_runs]
+    num_index = run_index.cumsum() * index_nums / run_index.sum()
+    return [time_bins[0], index_nums],[run_index, num_index]
+
+def PPC_read(File_num, Sample_type):
+    dt = np.dtype([('TOF1', np.uint16), ('TOF2', np.uint16), ('TOF3', np.uint16),
+                   ('TOF4', np.uint16), ('Not need1', np.uint16), ('Not need2', np.uint16), ('Not need3', np.uint16),
+                   ('Not need4', np.uint16), ("elx", np.uint16), ('con', np.uint16)])
+    Number_of = np.dtype([("elx", np.uint32,)])
+    PPC_file = os.path.join(PPC_dir,
+                            'PPC' + str(Sample_type) + '_0' + str(File_num[0]) + '.dat')  # Number of ions extraction
+    if os.path.isfile(PPC_file):
+        records = np.fromfile(PPC_file, Number_of, offset=0)
+        Ionnumber = records[0][0]
+        records = np.delete(records, [0])
+
+        records.tofile("test.dat")  # Converting the whole file
+        records = np.fromfile("test.dat", dt, offset=0)
+
+        df = pd.DataFrame(records)
+    else:
+        print("Cant read file num", File_num)
+        return
+    df["Number"] = File_num[0]
+    #print(df.TOF1)
+    return df, Ionnumber
+
+def Num_ch(numbers):
+    for number in range(len(numbers)):
+        if (numbers[number] < 10):
+            numbers[number] = "0" + str(numbers[number])
+        else:
+            numbers[number] = str(numbers[number])
+    return numbers
+
+
+
+
+
+
+def Slide_show(to_plot, amount_slides):
+    slide_num = 0
+    Slideshow = plt.figure(0)
+
+    def Scroll_forward(fig):
+        global slide_num
+        slide_num += 1
+        slide_num %= amount_slides
+        fig.clear()
+        print("Figure", slide_num)
+        to_plot()
+        plt.draw()
+
+    def Click_backwards(fig):
+        global slide_num
+        slide_num -= 1
+        slide_num %= amount_slides
+        fig.clear()
+        print("Figure", slide_num)
+        to_plot()
+        plt.draw()
+
+    to_plot()
+    Slideshow.canvas.mpl_connect('scroll_event', lambda event: Scroll_forward(Slideshow))
+    Slideshow.canvas.mpl_connect('button_press_event', lambda event: Click_backwards(Slideshow))
+    plt.show()
 
 
 
