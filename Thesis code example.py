@@ -27,7 +27,9 @@ slide_num = 0
 
 
 #I am sorry about the poor quality of the comments and explanations, but the code is still a work in progress and needs some fine tuning.
-# This file can be considered as more of a showcase of my abilities, since I am not expecting anyone to actually try to read all of the 1000 lines in the original file, not to mention actually understand what al of they do
+# This file can be considered as more of a showcase of my abilities. If you like to see the full file feel free to contact me.
+# The file contains the pipepline and some visualisation tricks such as a trackable marker and slides show functions, which I am more than happy to share.
+ 
 
 
 
