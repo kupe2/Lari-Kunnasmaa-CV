@@ -27,9 +27,7 @@ slide_num = 0
 
 
 #I am sorry about the poor quality of the comments and explanations, but the code is still a work in progress and needs some fine tuning.
-# This file can be considered as more of a showcase of my abilities. If you like to see the full file feel free to contact me.
-# The file contains the pipepline and some visualisation tricks such as a trackable marker and slides show functions, which I am more than happy to share.
- 
+# This file can be considered as more of a showcase of my abilities, since I am not expecting anyone to actually try to read all of the 1000 lines in the original file, not to mention actually understand what al of they do
 
 
 
@@ -105,7 +103,7 @@ def PPC_mani(df, Limits, drift_fix):  # This function sorts the data and applies
 
     return time_df, df_true, df_rand
 
-# Makes the over time tof so, figure 3
+# Makes the over time time of fligth spectrum so, figure 3
 def Time_df(df, TOF_bins, index_bins):
     time_tof = pd.DataFrame()
     now_time = time.time()
@@ -141,7 +139,7 @@ def Fix_drift(time_tof, run_index):
     return time_tof, cor_par
 
 
-# Function makes the slides mentioned in the pdf and and finds peaks and fits the peaks figures 4 and 5 are mad e by this function
+# Function makes the slides mentioned in the pdf and and finds peaks and fits the peaks, figures 4 and 5 are made by this function
 def Get_gpeaks(time_tof, run_index):
     Slides = False
 
@@ -191,6 +189,8 @@ def Get_gpeaks(time_tof, run_index):
 
             norm_max = Norm_tof.iloc[peak[0] :peak[-1] +1, slice].max()
 
+
+            #Tries to fit a function on each peak
             try:
                 popt, pcov = curve_fit(Gaussian_funtion, dx.values.flatten().tolist(), dy.values.flatten().tolist(),
                                        p0=[norm_max* 1, pos_ave+0.1, 0.01 * sigma], maxfev=800, bounds=( [norm_max * 0.99, (pos_ave) - 2, sigma * 0.000001], [norm_max * 1.01, (pos_ave) + 3, 0.05 * sigma]))
@@ -208,6 +208,8 @@ def Get_gpeaks(time_tof, run_index):
     peaks_pos = peaks_pos.dropna(axis=1, how='all')
     slide_peaks = slide_peaks.dropna(axis=1, how='all')
 
+
+    #This uses the slideshow that I created so I can check the results easily-
     def Slide_tof():
         ax = sns.lineplot(data=Norm_tof, x=Norm_tof.index, y=Norm_tof.iloc[0:, slide_num].values.flatten())
         plt.xticks(range(len( Norm_tof.index))[::10],   time_tof.index[::10])
