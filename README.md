@@ -3,7 +3,7 @@
 Hi there,
 Welcome to my page
 
-My name is Lari Kunnasmaa and I am an Univesity student from Turku, soon moving to Pori.
+My name is Lari Kunnasmaa and I am an Univesity student from Turku, now living in Pori.
 
 I have majored in physics with a minor in mathematics, programming and sustainable development. 
 
