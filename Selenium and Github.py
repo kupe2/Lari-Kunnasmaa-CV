@@ -7,17 +7,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import imaplib
+import email
+from email.header import decode_header
+import webbrowser
 
-driver = webdriver.Chrome()
 
-# Type the molecule of which mass you want to know
 
-name = "kupe2"
-project = "Lari-Kunnasmaa-CV"
-company = "Acme" #
-git_traffic = False
-save = True
-close = False
+
+
+
+
 
 
 # I use this function in my thesis, to find molecules.
@@ -57,7 +57,7 @@ def get_mol_mass(molecule):
 
 
 # Gets the amount of unique views from my Github CV. This is to track what companies actually look at my github, why yes I do keep track of the data.
-# No worries it will never be published and if you actually reading this means you are one of the good companies. So, good for you.
+# No worries it will never be published and if you actually reading this means you are one of the good companies. So, good for you guys :D.
 def get_traffic(name, project):
 
     driver.get(f"https://github.com/{name}/{project}") # Looks for the specific project
@@ -75,7 +75,6 @@ def get_traffic(name, project):
 
  # Tracks the companies, that have looked at the github. So I can report it to Mr "joulupukki" if the company has been naughty or nice.
  # note (if you looked at github you are nice)
- # I should really add an automatic email sent to santas' workshops
 def save_traffic_to_excel(days_views):
     Git_jobs = pd.read_excel('Git_jobs.xlsx', index_col=0)
     Git_jobs.loc[company, "Viewed"] = True
@@ -89,17 +88,67 @@ def save_traffic_to_excel(days_views):
 #
 def get_molecule():
     driver = webdriver.Chrome()
-    driver.get("https://www.zuiveringstechnieken.nl/en-gb/random-hydrocarbons")
+    driver.get("https://www.zuiveringstechnieken.nl/en-gb/random-hydrocarbons") # Goes to a site and gets a random hydrocrabon
     mol  =driver.find_element(By.XPATH, '//*[@id="1920353114"]/font/center/b')
     mol_name = mol.text.split(",")[1]
     driver.close()
     return mol_name
 
+
+
+def read_email():
+    # Large credit goes to https://www.thepythoncode.com/article/reading-emails-in-python, who has provided excellentt documentation on the subject
+    imap = imaplib.IMAP4_SSL(server, 993) # IMAP class
+    print(f"Connection Object : {imap}") #Check connection
+
+    imap.login(Vault.email_name, Vault.password)  # Again password in vault, so that you cannot see it :D
+    imap.select() # Select inbox
+    status ,messages = imap.search(None, "UNSEEN") #Search for  so unseen emails
+
+    for message in messages[0].split(): # Check all the messages
+        typ, datas = imap.fetch(message,'(RFC822)')  # Get emails with ID,
+
+
+        for data in datas: #Gets the
+            if isinstance(data, tuple):
+                msg = email.message_from_bytes(data[1])
+                From = msg["From"] # Gets who sent the message
+                subject = msg["subject"]  # Gets subject
+                print(f"A message from {From} about {subject}")
+
+                for part in msg.walk(): #Prints the message
+                        if part.get_content_type()=="text/plain" :
+                            messages = part.get_payload(decode=True)
+                            print(messages.decode())
+
+
+    imap.close()
+    imap.logout()
+
+
+
+name = "kupe2"
+project = "Lari-Kunnasmaa-CV"
+company = "Acme"
+git_traffic = False
+save = True
+close = False
 molecule = ""
 repeats = 100
 
+server = "imap.gmail.com"
+
+
+
 if __name__ == '__main__':
-    # This checks the molecules mass and massspectrum I use this in my thesis to optimize workflow
+    # I made  small script that reads my gmail,
+    # In the future (1-3 days) this script will also automatically send an email to anyone how sends an email to the address
+    # to add some interactivity to my cv
+    read_email()
+
+
+    driver = webdriver.Chrome()
+    #This checks the molecules mass and massspectrum I use this in my thesis to optimize workflow
     if len(molecule) > 0:
         mol_mass = get_mol_mass(molecule)
 
