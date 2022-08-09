@@ -124,6 +124,33 @@ def read_email():
 
     imap.close()
     imap.logout()
+    return From.replace("<", '').replace(">",'').split()[-1]   
+ 
+#Just a simple email reply if the email is sent, feel free to test it out.
+def send_reply(From):
+    #Just a simple text reply, wanted to put some funny images for example, but since if someone actually does want to 
+    # test the code did not want to make it too much of a security risk. Althought I might add a text cat un the future
+    # Or use sklearn to try to interpert the original message sent.
+    e_mail = Vault.email_name
+    SUBJECT = "An automatic reply from from the CV email code"
+    TEXT = """\
+    Hello,\n
+    This has been an automatic reply :D\n 
+    I thank you for your participation 
+
+    """
+    email_text = 'Subject: {}\n\n{}'.format(SUBJECT, TEXT) 
+    sgma = smtplib.SMTP('smtp.gmail.com', 587)# Opens gmail
+    sgma.ehlo() # 
+
+    sgma.starttls() # The sent to the address that sent the original message 
+    sgma.login(Vault.email_name,Vault.password)
+    sgma.sendmail(e_mail, From, email_text)
+    print("Send to %s success!" % From)
+    sgma.quit()
+
+    return
+
 
 
 
@@ -138,13 +165,14 @@ repeats = 100
 
 server = "imap.gmail.com"
 
-
+reply= True
 
 if __name__ == '__main__':
-    # I made  small script that reads my gmail,
-    # In the future (1-3 days) this script will also automatically send an email to anyone how sends an email to the address
-    # to add some interactivity to my cv
+    # I made  small script that reads my fake accounts gmail,
+    # Now when running the code it checks for new messages and replies to all new messsages
     read_email()
+    if reply:
+        send_reply(From)
 
 
     driver = webdriver.Chrome()
